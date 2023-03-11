@@ -1,0 +1,63 @@
+<identifier> := <character>
+<cs-expression> := <expression>(, <expression>)*
+<expression> :=
+    | (<expression>)
+    | <identifier>
+    | <literal>
+    | <identifier>(<cs-expression>)
+    | <expression> <special-identifier> <expression>
+    | <expression><special-identifier>
+    | <special-identifier><expression>
+    | { <block> }
+<line> :=
+    | val <identifier> = <expression>
+    | var <identifier> = <expression>
+    | <expression>
+<block> := (<line>\n)*
+
+val x = (2 + 3)!
+
+VAL("x", 
+    FUNCTION_APPLICATION("!", 
+        FUNCTION_APPLICATION("+",
+            NUMBER(2), 
+            NUMBER(3)
+        )
+    )
+)
+
+val a = {
+    val b = {
+        say("hello")
+        val c = {
+            1
+        }
+    }
+    say("test")
+}
+
+VAL("a",
+    BLOCK(
+        VAL("b",
+            BLOCK(
+                FUNCTION_APPLICATION("say", "hello"),
+                VAL("c", 
+                    BLOCK(
+                        NUMBER(1)
+                    )
+                )
+            )
+        )
+    )
+)
+
+
+
+00001 --> 00000
+00010 --> 00001
+00011 --> 00010
+00100 --> 00002
+00101 --> 00100
+00110 --> 00011
+      ...
+11111 --> 
