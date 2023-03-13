@@ -1,15 +1,6 @@
-*
-    (+ 2 3 4)
-    (/ 4 (/ 1000 500))
-    (- 7 2)
+(
+    (1 + 2 + (3 + (4 - 5))) * 6
+) / (
+    2 + 3
+)
 
-/*
-
-<id>(<expression>)
-<expression> <op> <expression>
-
-f(1) -> func(f, 1)
-a + b -> func(+, a, b)
-a + b + c -> a + (b + c) -> func(+, a, func(+, b, c))
-
-*/

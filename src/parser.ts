@@ -1,92 +1,109 @@
 import { Token } from "./tokenizer";
 
-type Tree =
+type Expression =
   | {
-      type: "expression";
-      children: Tree[];
+      type: "function_call";
+      function: string;
+      parameters: Expression[];
     }
   | {
-      type: "value";
+      type: "number_literal";
+      value: string;
+    }
+  | {
+      type: "string_literal";
       value: string;
     };
 
-export const parse = (tokens: Token[]): Tree => {
-  let index = 0;
-  let currentTree: Tree = {
-    type: "expression",
-    children: [],
-  };
-  while (index < tokens.length) {
-    const currentToken = tokens[index];
-    if (currentToken.type === "parenthesis") {
-      if (currentToken.value === ")") {
-        throw new Error("closed parenthesis found before open");
-      } else {
-        let endingIndex = index + 1;
-        let opens = 0;
-        while (
-          !(
-            tokens[endingIndex].type === "parenthesis" &&
-            tokens[endingIndex].value === ")" &&
-            opens === 0
-          )
-        ) {
-          if (tokens[endingIndex].type === "parenthesis") {
-            if (tokens[endingIndex].value === "(") {
-              opens++;
-            } else {
-              opens--;
-            }
-          }
-          endingIndex++;
-          if (endingIndex >= tokens.length) {
-            throw new Error("parenthesis were not closed :/");
-          }
+type ParseResult = {
+  consumed: number;
+  expression: Expression;
+};
+
+type Parser = (tokens: Token[], index: number) => ParseResult;
+
+const parseNumber: Parser = (tokens: Token[], index: number) => ({
+  consumed: 1,
+  expression: {
+    type: "number_literal",
+    value: tokens[index].value,
+  },
+});
+
+const parseString: Parser = (tokens: Token[], index: number) => ({
+  consumed: 1,
+  expression: {
+    type: "string_literal",
+    value: tokens[index].value,
+  },
+});
+
+// const parsePrefixFunction: Parser = (tokens: Token[], index: number) => {
+//   let f = tokens[index].value;
+//   let endIndex = index + 2;
+//   let parens = 0;
+//   while (tokens[endIndex].value !== "," || parens !== 0) {
+//     if (tokens[endIndex].value === "(") {
+//       parens++;
+//     } else if (tokens[endIndex].value === ")") {
+//       parens--;
+//     }
+//     endIndex++;
+//     if (endIndex >= tokens.length) throw new Error();
+//   }
+//   const x = {
+//     consumed: 3,
+//     expression: {
+//       type: "string_literal",
+//       value: tokens[index].value,
+//     },
+//   };
+// };
+
+export const parseExpression: Parser = (tokens: Token[], index: number) => {
+  let firstParse: ParseResult;
+  switch (tokens[index].type) {
+    case "number":
+      firstParse = parseNumber(tokens, index);
+      break;
+    case "string":
+      firstParse = parseString(tokens, index);
+      break;
+    // case "name":
+    //   firstParse = parsePrefixFunction(tokens, index);
+    //   break;
+    case "parenthesis":
+      if (tokens[index].value === ")") throw new Error();
+      let endIndex = index + 1;
+      let parens = 0;
+      while (tokens[endIndex].value !== ")" || parens !== 0) {
+        if (tokens[endIndex].value === "(") {
+          parens++;
+        } else if (tokens[endIndex].value === ")") {
+          parens--;
         }
-        const subTree = parse(tokens.slice(index + 1, endingIndex));
-        currentTree.children.push(subTree);
-        index = endingIndex;
+        endIndex++;
+        if (endIndex >= tokens.length) throw new Error();
       }
-    } else {
-      currentTree.children.push({
-        type: "value",
-        value: currentToken.value,
-      });
-    }
-    index++;
+      firstParse = parseExpression(tokens.slice(index + 1, endIndex), 0);
+      firstParse.consumed += 2;
+      break;
+    default:
+      throw new Error();
   }
-  if (currentTree.children.length === 1) {
-    return currentTree.children[0];
+  index += firstParse.consumed;
+  if (index < tokens.length) {
+    const f = tokens[index].value;
+    const secondParse = parseExpression(tokens.slice(index + 1), 0);
+    return {
+      consumed: firstParse.consumed + 1 + secondParse.consumed,
+      expression: {
+        type: "function_call",
+        function: f,
+        parameters: [firstParse.expression, secondParse.expression],
+      },
+    };
   } else {
-    return currentTree;
-  }
-};
-
-export const toString = (tree: Tree, indentationLevel: number): string => {
-  const indentation = `  `.repeat(indentationLevel);
-  if (tree.type === "value") {
-    return `${indentation}value(${tree.value})`;
-  } else {
-    return `${indentation}expression(\n${tree.children
-      .map((child) => toString(child, indentationLevel + 1))
-      .join("\n")}\n${indentation})`;
-  }
-};
-
-export const calculate = (tree: Tree): number => {
-  if (tree.type === "value") {
-    return parseInt(tree.value);
-  } else {
-    const operator = tree.children[0];
-    if (operator.type !== "value") {
-      throw new Error("you can't start an expression with another expression!");
-    }
-    const f = {
-      "+": (x: number, y: number) => x + y,
-      "-": (x: number, y: number) => x - y,
-      "/": (x: number, y: number) => x / y,
-      "*": (x: number, y: number) => x * y,
-    }[operator.value]!;
-    return tree.children.slice(1).map(calculate).reduce(f);
+    return firstParse;
   }
 };

@@ -6,6 +6,7 @@ export const tokenTypes = [
   "operator",
   "space",
   "comment",
+  "terminator",
 ] as const;
 
 export type Token = {
@@ -29,6 +30,7 @@ const tokenizeCharacter =
 
 const tokenizeOpenParens = tokenizeCharacter("parenthesis", "(");
 const tokenizeClosedParens = tokenizeCharacter("parenthesis", ")");
+const tokenizeSemi = tokenizeCharacter("terminator", ";");
 
 const operators = "+-*/";
 
@@ -109,6 +111,7 @@ const tokenizers: Tokenizer[] = [
   tokenizeSpace,
   tokenizeClosedParens,
   tokenizeOpenParens,
+  tokenizeSemi,
   tokenizeName,
   tokenizeNumber,
 ];

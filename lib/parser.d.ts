@@ -1,12 +1,19 @@
 import { Token } from "./tokenizer";
-type Tree = {
-    type: "expression";
-    children: Tree[];
+type Expression = {
+    type: "function_call";
+    function: string;
+    parameters: Expression[];
 } | {
-    type: "value";
+    type: "number_literal";
+    value: string;
+} | {
+    type: "string_literal";
     value: string;
 };
-export declare const parse: (tokens: Token[]) => Tree;
-export declare const toString: (tree: Tree, indentationLevel: number) => string;
-export declare const calculate: (tree: Tree) => number;
+type ParseResult = {
+    consumed: number;
+    expression: Expression;
+};
+type Parser = (tokens: Token[], index: number) => ParseResult;
+export declare const parseExpression: Parser;
 export {};
