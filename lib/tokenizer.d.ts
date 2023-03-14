@@ -1,4 +1,4 @@
-export declare const tokenTypes: readonly ["name", "string", "number", "parenthesis", "operator", "space", "comment", "terminator"];
+export declare const tokenTypes: readonly ["id", "string", "number", "operator", "space", "comment", "punctuation", "keyword"];
 export type Token = {
     type: typeof tokenTypes[number];
     value: string;

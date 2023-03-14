@@ -1,109 +1,189 @@
 import { Token } from "./tokenizer";
 
-type Expression =
+type AST =
   | {
-      type: "function_call";
-      function: string;
-      parameters: Expression[];
+      type: "program";
+      prog: AST[];
     }
   | {
-      type: "number_literal";
+      type: "assign";
+      operator: string;
+      left: AST;
+      right: AST;
+    }
+  | {
+      type: "number";
       value: string;
     }
   | {
-      type: "string_literal";
+      type: "string";
       value: string;
+    }
+  | {
+      type: "call";
+      func: AST;
+      parameters: AST[];
+    }
+  | {
+      type: "id";
+      value: string;
+    }
+  | {
+      type: "function";
+      params: AST[];
+      body: AST[];
     };
 
-type ParseResult = {
-  consumed: number;
-  expression: Expression;
+const PRECEDENCE = {
+  "=": 1,
+  "||": 2,
+  "&&": 3,
+  "<": 4,
+  ">": 4,
+  "<=": 4,
+  ">=": 4,
+  "==": 4,
+  "!=": 4,
+  "+": 5,
+  "-": 5,
+  "*": 6,
+  "/": 6,
+  "%": 6,
 };
 
-type Parser = (tokens: Token[], index: number) => ParseResult;
-
-const parseNumber: Parser = (tokens: Token[], index: number) => ({
-  consumed: 1,
-  expression: {
-    type: "number_literal",
-    value: tokens[index].value,
-  },
-});
-
-const parseString: Parser = (tokens: Token[], index: number) => ({
-  consumed: 1,
-  expression: {
-    type: "string_literal",
-    value: tokens[index].value,
-  },
-});
-
-// const parsePrefixFunction: Parser = (tokens: Token[], index: number) => {
-//   let f = tokens[index].value;
-//   let endIndex = index + 2;
-//   let parens = 0;
-//   while (tokens[endIndex].value !== "," || parens !== 0) {
-//     if (tokens[endIndex].value === "(") {
-//       parens++;
-//     } else if (tokens[endIndex].value === ")") {
-//       parens--;
-//     }
-//     endIndex++;
-//     if (endIndex >= tokens.length) throw new Error();
-//   }
-//   const x = {
-//     consumed: 3,
-//     expression: {
-//       type: "string_literal",
-//       value: tokens[index].value,
-//     },
-//   };
-// };
-
-export const parseExpression: Parser = (tokens: Token[], index: number) => {
-  let firstParse: ParseResult;
-  switch (tokens[index].type) {
-    case "number":
-      firstParse = parseNumber(tokens, index);
-      break;
-    case "string":
-      firstParse = parseString(tokens, index);
-      break;
-    // case "name":
-    //   firstParse = parsePrefixFunction(tokens, index);
-    //   break;
-    case "parenthesis":
-      if (tokens[index].value === ")") throw new Error();
-      let endIndex = index + 1;
-      let parens = 0;
-      while (tokens[endIndex].value !== ")" || parens !== 0) {
-        if (tokens[endIndex].value === "(") {
-          parens++;
-        } else if (tokens[endIndex].value === ")") {
-          parens--;
-        }
-        endIndex++;
-        if (endIndex >= tokens.length) throw new Error();
+export const parse = (input: Token[]) => {
+  let index = 0;
+  const done = () => index >= input.length;
+  const accepts = (type: Token["type"], value: string) =>
+    input[index].type === type && input[index].value === value;
+  const expects = (type: Token["type"], value: string) => {
+    if (!accepts(type, value)) {
+      throw new Error(
+        `expected ${type} "${value}", found ${input[index].type} "${input[index].value}"`
+      );
+    }
+  };
+  const next = () => {
+    index++;
+  };
+  const skip = (type: Token["type"], value: string) => {
+    expects(type, value);
+    next();
+  };
+  const parseTopLevel = () => {
+    const program: AST[] = [];
+    while (!done()) {
+      program.push(parseExpression());
+      if (!done()) {
+        skip("punctuation", ";");
       }
-      firstParse = parseExpression(tokens.slice(index + 1, endIndex), 0);
-      firstParse.consumed += 2;
-      break;
-    default:
-      throw new Error();
-  }
-  index += firstParse.consumed;
-  if (index < tokens.length) {
-    const f = tokens[index].value;
-    const secondParse = parseExpression(tokens.slice(index + 1), 0);
+    }
+    return program;
+  };
+  const maybeCall = (expr: () => AST): AST => {
+    const evaluated = expr();
+    return !done() && accepts("punctuation", "(")
+      ? parseCall(evaluated)
+      : evaluated;
+  };
+  const parseCall = (func: AST): AST => {
     return {
-      consumed: firstParse.consumed + 1 + secondParse.consumed,
-      expression: {
-        type: "function_call",
-        function: f,
-        parameters: [firstParse.expression, secondParse.expression],
-      },
+      type: "call",
+      func,
+      parameters: delimited("(", ")", ",", parseExpression),
     };
-  } else {
-    return firstParse;
-  }
+  };
+  const maybeBinary = (left: AST, precedence: number): AST => {
+    if (!done() && input[index].type === "operator") {
+      const token = input[index];
+      const otherPrecedence =
+        PRECEDENCE[token.value as keyof typeof PRECEDENCE];
+      if (otherPrecedence > precedence) {
+        next();
+        const right = maybeBinary(parseAtom(), otherPrecedence);
+        return maybeBinary(
+          {
+            type: "call",
+            func: {
+              type: "id",
+              value: token.value,
+            },
+            parameters: [left, right],
+          },
+          precedence
+        );
+      }
+    }
+    return left;
+  };
+  const delimited = (
+    start: string,
+    stop: string,
+    seperator: string,
+    parser: () => AST
+  ) => {
+    const asts: AST[] = [];
+    let first = true;
+    skip("punctuation", start);
+    while (!done()) {
+      if (accepts("punctuation", stop)) break;
+      if (first) {
+        first = false;
+      } else {
+        skip("punctuation", seperator);
+      }
+      if (accepts("punctuation", stop)) break;
+      asts.push(parser());
+    }
+    skip("punctuation", stop);
+    return asts;
+  };
+  const parseProgram = (): AST => ({
+    type: "program",
+    prog: delimited("{", "}", ";", parseExpression),
+  });
+
+  const parseLambda = (): AST => {
+    skip("operator", "\\");
+    const params = delimited("(", ")", "|", parseExpression);
+    skip("operator", "->");
+    const body = delimited("{", "}", ";", parseExpression);
+    return {
+      type: "function",
+      params,
+      body,
+    };
+  };
+
+  const parseAtom = (): AST => {
+    return maybeCall(() => {
+      if (accepts("punctuation", "(")) {
+        next();
+        const expression = parseExpression();
+        skip("punctuation", ")");
+        return expression;
+      }
+
+      if (accepts("punctuation", "{")) return parseProgram();
+      if (accepts("operator", "\\")) return parseLambda();
+      // if (accepts('keyword', 'if')) return parseConfigFile()
+      const token = input[index];
+      if (
+        token.type === "id" ||
+        token.type === "number" ||
+        token.type === "string"
+      ) {
+        next();
+        return {
+          type: token.type,
+          value: token.value,
+        };
+      }
+      throw new Error(`token unrecognized: ${token.type} "${token.value}"`);
+    });
+  };
+  const parseExpression = (): AST =>
+    maybeCall(() => maybeBinary(parseAtom(), 0));
+
+  return parseTopLevel();
 };

@@ -1,12 +1,12 @@
 export const tokenTypes = [
-  "name",
+  "id",
   "string",
   "number",
-  "parenthesis",
   "operator",
   "space",
   "comment",
-  "terminator",
+  "punctuation",
+  "keyword",
 ] as const;
 
 export type Token = {
@@ -28,14 +28,32 @@ const tokenizeCharacter =
       ? { consumed: 1, token: { type, value } }
       : undefined;
 
-const tokenizeOpenParens = tokenizeCharacter("parenthesis", "(");
-const tokenizeClosedParens = tokenizeCharacter("parenthesis", ")");
-const tokenizeSemi = tokenizeCharacter("terminator", ";");
+const tokenizePunctuation = ";,(){}[]"
+  .split("")
+  .map((c) => tokenizeCharacter("punctuation", c));
 
-const operators = "+-*/";
+const operators = ["+", "-", "*", "/", "=", "->", "\\"];
 
-const tokenizeOperators = [...operators].map((operator) =>
-  tokenizeCharacter("operator", operator)
+const tokenizeOperator =
+  (operator: string): Tokenizer =>
+  (index: number, string: string) => {
+    if (operator.length + index >= string.length) {
+      return undefined;
+    } else {
+      return string.slice(index, index + operator.length) === operator
+        ? ({
+            consumed: operator.length,
+            token: {
+              type: "operator",
+              value: operator,
+            },
+          } as TokenizeResult)
+        : undefined;
+    }
+  };
+
+const tokenizeOperators = operators.map((operator) =>
+  tokenizeOperator(operator)
 );
 
 const tokenizePattern =
@@ -58,7 +76,7 @@ const tokenizePattern =
   };
 
 const tokenizeNumber = tokenizePattern("number", /[0-9]/);
-const tokenizeName = tokenizePattern("name", /[a-zA-Z]/);
+const tokenizeName = tokenizePattern("id", /[a-zA-Z]/);
 const tokenizeSpace = tokenizePattern("space", /\s/);
 
 // todo: generalize
@@ -104,14 +122,33 @@ const tokenizeComment: Tokenizer = (index: number, source: string) => {
   } else return undefined;
 };
 
+const tokenizeKeyword =
+  (keyword: string): Tokenizer =>
+  (index: number, string: string) => {
+    if (keyword.length + index >= string.length) {
+      return undefined;
+    } else {
+      return string.slice(index, index + keyword.length) === keyword
+        ? ({
+            consumed: keyword.length,
+            token: {
+              type: "keyword",
+              value: keyword,
+            },
+          } as TokenizeResult)
+        : undefined;
+    }
+  };
+
+const keywords = "if val var".split(" ");
+
 const tokenizers: Tokenizer[] = [
   tokenizeComment,
   tokenizeString,
   ...tokenizeOperators,
   tokenizeSpace,
-  tokenizeClosedParens,
-  tokenizeOpenParens,
-  tokenizeSemi,
+  ...tokenizePunctuation,
+  ...keywords.map(tokenizeKeyword),
   tokenizeName,
   tokenizeNumber,
 ];

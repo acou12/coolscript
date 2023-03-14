@@ -1,19 +1,29 @@
 import { Token } from "./tokenizer";
-type Expression = {
-    type: "function_call";
-    function: string;
-    parameters: Expression[];
+type AST = {
+    type: "program";
+    prog: AST[];
 } | {
-    type: "number_literal";
+    type: "assign";
+    operator: string;
+    left: AST;
+    right: AST;
+} | {
+    type: "number";
     value: string;
 } | {
-    type: "string_literal";
+    type: "string";
     value: string;
+} | {
+    type: "call";
+    func: AST;
+    parameters: AST[];
+} | {
+    type: "id";
+    value: string;
+} | {
+    type: "function";
+    params: AST[];
+    body: AST[];
 };
-type ParseResult = {
-    consumed: number;
-    expression: Expression;
-};
-type Parser = (tokens: Token[], index: number) => ParseResult;
-export declare const parseExpression: Parser;
+export declare const parse: (input: Token[]) => AST[];
 export {};
