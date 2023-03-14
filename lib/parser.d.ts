@@ -1,5 +1,5 @@
 import { Token } from "./tokenizer";
-type AST = {
+export type AST = {
     type: "program";
     prog: AST[];
 } | {
@@ -24,6 +24,10 @@ type AST = {
     type: "function";
     params: AST[];
     body: AST[];
+} | {
+    type: "if";
+    condition: AST;
+    ifBranch: AST;
+    elseBranch: AST;
 };
 export declare const parse: (input: Token[]) => AST[];
-export {};

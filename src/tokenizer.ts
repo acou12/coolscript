@@ -28,16 +28,30 @@ const tokenizeCharacter =
       ? { consumed: 1, token: { type, value } }
       : undefined;
 
-const tokenizePunctuation = ";,(){}[]"
+const tokenizePunctuation = ";,(){}[]|"
   .split("")
   .map((c) => tokenizeCharacter("punctuation", c));
 
-const operators = ["+", "-", "*", "/", "=", "->", "\\"];
+export const operators = [
+  "<=",
+  ">=",
+  "==",
+  "!=",
+  "->",
+  "+",
+  "-",
+  "*",
+  "/",
+  "=",
+  "\\",
+  "<",
+  ">",
+];
 
 const tokenizeOperator =
   (operator: string): Tokenizer =>
   (index: number, string: string) => {
-    if (operator.length + index >= string.length) {
+    if (operator.length + index > string.length) {
       return undefined;
     } else {
       return string.slice(index, index + operator.length) === operator
@@ -125,7 +139,7 @@ const tokenizeComment: Tokenizer = (index: number, source: string) => {
 const tokenizeKeyword =
   (keyword: string): Tokenizer =>
   (index: number, string: string) => {
-    if (keyword.length + index >= string.length) {
+    if (keyword.length + index > string.length) {
       return undefined;
     } else {
       return string.slice(index, index + keyword.length) === keyword

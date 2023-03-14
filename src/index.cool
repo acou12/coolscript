@@ -1,4 +1,10 @@
-\(x, y) -> {
-    f(x);
-    g(y);
-}
+fact = \(x) ->
+    if x <= 1,
+    1,
+    x * fact(x - 1);
+
+main = \() -> {
+    println(fact(150) - fact(150));
+};
+
+main();
