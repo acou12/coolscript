@@ -1,10 +1,14 @@
-fact = \(x) ->
-    if x <= 1,
-    1,
-    x * fact(x - 1);
+fact = \(x) -> if x <= 1, 1, x * fact(x - 1);
+
+forloop = \(from|to|f) -> {
+    (if from <= to, \() -> {
+        f(from);
+        forloop(from + 1, to, f);
+    }, \() -> {})();
+};
 
 main = \() -> {
-    println(fact(150) - fact(150));
+    forloop(0, 50, \(x) -> println(x + "! = " + fact(x)));
 };
 
 main();
