@@ -5,16 +5,17 @@ val factTen = factorial(10);
 println(factTen);
 
 if (factTen > 1000000) {
-    println("okay, good");
+    println("dang, that's big!");
 
     val equalityIsSymmetric = 1 == 1;
     val equalityProperty = if equalityIsSymmetric "symmetric" else "asymmetric";
     println("equality is " + equalityProperty);
+
     if (equalityIsSymmetric) {
         println("that's what i thought...");
     };
 } else {
-    println("math is broken??");
+    println("not that big -- unimpressed.");
 };
 
 // first class coming soon... for now,
@@ -25,18 +26,23 @@ val forLoop = { left, right, f ->
     };
 };
 
+println();
 println("Here are some factorials: ");
 forLoop(1, 10, { x -> println(x + "! = " + factorial(x)) });
+
+val power = native("Math.pow");
+
+val twoToTheTen = power(2, 10);
 
 println();
 println("Now for fizzes and buzzes: ");
 
-forLoop(1, 100, { n ->
+forLoop(1, twoToTheTen, { n ->
     println(
         // autorun blocks, prepended with `!`
        !{
             val combined = ((if (n % 3 == 0) "Fizz" else "") + (if (n % 5 == 0) "Buzz" else ""));
-            if (combined == "") n else combined
+            if (combined == "") n else combined // this value is returned (it's a ternary)
        }
     )
-})
+});

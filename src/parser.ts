@@ -68,7 +68,7 @@ export const parse = (input: Token[]) => {
   const expects = (type: Token["type"], value: string) => {
     if (!accepts(type, value)) {
       throw new Error(
-        `expected ${type} "${value}", found ${input[index].type} "${input[index].value}"`
+        `expected ${type} "${value}", found ${input[index].type} "${input[index].value}" at ${index}`
       );
     }
   };
@@ -269,7 +269,9 @@ export const parse = (input: Token[]) => {
         };
       }
 
-      throw new Error(`syntax error: ${token.type} "${token.value}"`);
+      throw new Error(
+        `syntax error: ${token.type} "${token.value}" at ${index}`
+      );
     });
   };
 
