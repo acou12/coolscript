@@ -1,0 +1,2 @@
+val say = native("console.log");
+val quine = say("quine();");

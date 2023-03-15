@@ -1,10 +1,7 @@
 import { AST } from "./parser";
 import { operators } from "./tokenizer";
 
-const prefix = `
-    const println = console.log;
-    const native = eval;
-`;
+export const prefix = `const native = eval;`;
 
 const js = (tree: AST): string => {
   switch (tree.type) {
@@ -38,4 +35,4 @@ const js = (tree: AST): string => {
   }
 };
 
-export const emit = (tree: AST[]) => prefix + tree.map(js).join(";\n");
+export const emit = (tree: AST[]) => tree.map(js).join(";") + ";";

@@ -1,19 +1,23 @@
 import * as fs from "fs/promises";
-import { exit } from "process";
-import { emit } from "./emitter";
+import { emit, prefix } from "./emitter";
 import { parse } from "./parser";
 import { tokenize } from "./tokenizer";
 
-fs.readFile("./src/index.cool").then((file) => {
-  try {
+const main = async () => {
+  const stdlib = await transpile("./src/stdlib.cool");
+  const index = await transpile("./src/index.cool");
+  fs.writeFile("out.js", prefix + stdlib + index);
+};
+
+const transpile = async (file: string): Promise<string> => {
+  return await fs.readFile(file).then((file) => {
     const tokens = tokenize(file.toString()).filter(
       ({ type }) => !["space", "comment"].includes(type)
     );
     const tree = parse(tokens);
     const emitted = emit(tree);
-    fs.writeFile("out.js", emitted);
-  } catch (e: any) {
-    console.log(e.message);
-    exit(1);
-  }
-});
+    return emitted;
+  });
+};
+
+main();
