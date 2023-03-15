@@ -1,14 +1,42 @@
-fact = \(x) -> if x <= 1, 1, x * fact(x - 1);
+val factorial = { n -> if (n <= 1) 1 else n * factorial(n - 1) };
 
-forloop = \(from|to|f) -> {
-    (if from <= to, \() -> {
-        f(from);
-        forloop(from + 1, to, f);
-    }, \() -> {})();
+val factTen = factorial(10);
+
+println(factTen);
+
+if (factTen > 1000000) {
+    println("okay, good");
+
+    val equalityIsSymmetric = 1 == 1;
+    val equalityProperty = if equalityIsSymmetric "symmetric" else "asymmetric";
+    println("equality is " + equalityProperty);
+    if (equalityIsSymmetric) {
+        println("that's what i thought...");
+    };
+} else {
+    println("math is broken??");
 };
 
-main = \() -> {
-    forloop(0, 50, \(x) -> println(x + "! = " + fact(x)));
+// first class coming soon... for now,
+val forLoop = { left, right, f -> 
+    if left <= right {
+        f(left);
+        forLoop(left + 1, right, f);
+    };
 };
 
-main();
+println("Here are some factorials: ");
+forLoop(1, 10, { x -> println(x + "! = " + factorial(x)) });
+
+println();
+println("Now for fizzes and buzzes: ");
+
+forLoop(1, 100, { n ->
+    println(
+        // autorun blocks, prepended with `!`
+       !{
+            val combined = ((if (n % 3 == 0) "Fizz" else "") + (if (n % 5 == 0) "Buzz" else ""));
+            if (combined == "") n else combined
+       }
+    )
+})

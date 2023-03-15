@@ -2,11 +2,8 @@ import { Token } from "./tokenizer";
 
 export type AST =
   | {
-      type: "program";
-      prog: AST[];
-    }
-  | {
       type: "assign";
+      mutable: boolean;
       operator: string;
       left: AST;
       right: AST;
@@ -32,12 +29,13 @@ export type AST =
       type: "function";
       params: AST[];
       body: AST[];
+      autoRun: boolean;
     }
   | {
       type: "if";
       condition: AST;
       ifBranch: AST;
-      elseBranch: AST;
+      elseBranch?: AST;
     };
 
 const PRECEDENCE = {
@@ -61,6 +59,8 @@ export const parse = (input: Token[]) => {
   let index = 0;
 
   const done = () => index >= input.length;
+
+  const currentToken = () => input[index];
 
   const accepts = (type: Token["type"], value: string) =>
     input[index].type === type && input[index].value === value;
@@ -106,21 +106,14 @@ export const parse = (input: Token[]) => {
         next();
         const right = maybeBinary(parseAtom(), otherPrecedence);
         return maybeBinary(
-          token.value === "="
-            ? {
-                type: "assign",
-                operator: token.value,
-                left,
-                right,
-              }
-            : {
-                type: "call",
-                func: {
-                  type: "id",
-                  value: token.value,
-                },
-                parameters: [left, right],
-              },
+          {
+            type: "call",
+            func: {
+              type: "id",
+              value: token.value,
+            },
+            parameters: [left, right],
+          },
           precedence
         );
       }
@@ -151,35 +144,92 @@ export const parse = (input: Token[]) => {
     return asts;
   };
 
-  const parseProgram = (): AST => ({
-    type: "program",
-    prog: delimited("{", "}", ";", parseExpression),
-  });
+  const parseId = () => {
+    return input[index++] as AST;
+  };
+
+  /*
+  valid: 
+    { a -> f() } 
+    { a, b -> f() }
+    { -> f() }
+    { a, b -> }
+  */
+
+  const parseAssignment = (): AST => {
+    const assignType = currentToken().value as "val" | "var";
+    next();
+    const mutable = assignType === "var";
+    return {
+      type: "assign",
+      operator: "=",
+      left: parseId(),
+      right: (skip("assign", "="), parseExpression()),
+      mutable,
+    };
+  };
 
   const parseLambda = (): AST => {
-    skip("operator", "\\");
-    const params = delimited("(", ")", "|", parseExpression);
-    skip("operator", "->");
-    let body;
-    if (accepts("punctuation", "{")) {
-      body = delimited("{", "}", ";", parseExpression);
-    } else {
-      body = [parseExpression()];
+    if (accepts("punctuation", "!")) {
+      next();
+      return {
+        type: "function",
+        params: [],
+        body: delimited("{", "}", ";", parseExpression),
+        autoRun: true,
+      };
     }
+    skip("punctuation", "{");
+    const params: AST[] = [];
+    while (!done() && currentToken().type === "id") {
+      params.push(parseId());
+      if (accepts("punctuation", ",")) {
+        next();
+      } else {
+        break;
+      }
+    }
+    skip("operator", "->");
+    const body: AST[] = [];
+    while (!done() && !accepts("punctuation", "}")) {
+      body.push(parseExpression());
+      if (accepts("punctuation", ";")) {
+        next();
+      } else {
+        break;
+      }
+    }
+    skip("punctuation", "}");
     return {
       type: "function",
       params,
       body,
+      autoRun: false,
     };
   };
 
   const parseIf = (): AST => {
     skip("keyword", "if");
     const condition = parseExpression();
-    skip("punctuation", ",");
-    const ifBranch = parseExpression();
-    skip("punctuation", ",");
-    const elseBranch = parseExpression();
+    const ifBranch: AST = {
+      type: "function",
+      params: [],
+      body: accepts("punctuation", "{")
+        ? delimited("{", "}", ";", parseExpression)
+        : [parseExpression()],
+      autoRun: true,
+    };
+    const elseBranch: AST | undefined = accepts("keyword", "else")
+      ? (next(),
+        {
+          type: "function",
+          params: [],
+          body: accepts("punctuation", "{")
+            ? delimited("{", "}", ";", parseExpression)
+            : [parseExpression()],
+          autoRun: true,
+        })
+      : undefined;
     return {
       type: "if",
       condition,
@@ -197,8 +247,13 @@ export const parse = (input: Token[]) => {
         return expression;
       }
 
-      if (accepts("punctuation", "{")) return parseProgram();
-      if (accepts("operator", "\\")) return parseLambda();
+      if (accepts("keyword", "val") || accepts("keyword", "var"))
+        return parseAssignment();
+
+      if (accepts("punctuation", "!") && input[index + 1].value === "{")
+        return parseLambda();
+
+      if (accepts("punctuation", "{")) return parseLambda();
       if (accepts("keyword", "if")) return parseIf();
 
       const token = input[index];

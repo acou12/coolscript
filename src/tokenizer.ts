@@ -7,6 +7,7 @@ export const tokenTypes = [
   "comment",
   "punctuation",
   "keyword",
+  "assign",
 ] as const;
 
 export type Token = {
@@ -28,9 +29,11 @@ const tokenizeCharacter =
       ? { consumed: 1, token: { type, value } }
       : undefined;
 
-const tokenizePunctuation = ";,(){}[]|"
+const tokenizePunctuation = ";,(){}[]|:!"
   .split("")
   .map((c) => tokenizeCharacter("punctuation", c));
+
+const tokenizeEquals = tokenizeCharacter("assign", "=");
 
 export const operators = [
   "<=",
@@ -40,9 +43,9 @@ export const operators = [
   "->",
   "+",
   "-",
+  "%",
   "*",
   "/",
-  "=",
   "\\",
   "<",
   ">",
@@ -133,6 +136,18 @@ const tokenizeComment: Tokenizer = (index: number, source: string) => {
         value: string,
       },
     };
+  } else if (source.slice(index, index + 2) === "//") {
+    let endIndex = index + 1;
+    while (source[endIndex] !== "\n" && endIndex < source.length) {
+      endIndex++;
+    }
+    return {
+      consumed: endIndex - index,
+      token: {
+        type: "comment",
+        value: source.slice(index, endIndex),
+      },
+    };
   } else return undefined;
 };
 
@@ -154,12 +169,13 @@ const tokenizeKeyword =
     }
   };
 
-const keywords = "if val var".split(" ");
+const keywords = "if else val var".split(" ");
 
 const tokenizers: Tokenizer[] = [
   tokenizeComment,
   tokenizeString,
   ...tokenizeOperators,
+  tokenizeEquals,
   tokenizeSpace,
   ...tokenizePunctuation,
   ...keywords.map(tokenizeKeyword),

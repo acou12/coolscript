@@ -8,7 +8,7 @@ fs.readFile("./src/index.cool").then((file) => {
     const tokens = tokenize(file.toString()).filter(
       ({ type }) => !["space", "comment"].includes(type)
     );
-    const out = prefix + parse(tokens).map(js).join("\n");
+    const out = prefix + parse(tokens).map(js).join(";\n");
     fs.writeFile("out.js", out);
   } catch (e: any) {
     console.log(e.message);
@@ -23,7 +23,9 @@ const println = console.log;
 const js = (tree: AST): string => {
   switch (tree.type) {
     case "assign":
-      return `let ${js(tree.left)}=${js(tree.right)}`;
+      return `${tree.mutable ? "let" : "const"} ${js(tree.left)}=${js(
+        tree.right
+      )}`;
     case "call":
       if (tree.func.type === "id" && operators.includes(tree.func.value)) {
         return `(${js(tree.parameters[0])} ${tree.func.value} ${js(
@@ -33,21 +35,19 @@ const js = (tree: AST): string => {
         return `${js(tree.func)}(${tree.parameters.map(js).join(",")})`;
       }
     case "function":
-      return `(${tree.params.map(js).join(",")})=>{${tree.body
+      return `(((${tree.params.map(js).join(",")})=>{${tree.body
         .map(js)
         .map((x, i) => (i === tree.body.length - 1 ? `return ${x}` : x))
-        .join(";")}}`;
+        .join(";")}})${tree.autoRun ? `()` : ``})`;
     case "id":
       return tree.value;
     case "number":
       return tree.value;
-    case "program":
-      return `{${tree.prog.map(js).join(";")}}`;
     case "string":
       return `"${tree.value}"`;
     case "if":
-      return `((${js(tree.condition)}) ? (${js(tree.ifBranch)}) : (${js(
-        tree.elseBranch
-      )}))`;
+      return `((${js(tree.condition)})?(${js(tree.ifBranch)}):${
+        tree.elseBranch !== undefined ? `(${js(tree.elseBranch)})` : `(()=>{})`
+      })`;
   }
 };
