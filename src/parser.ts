@@ -59,9 +59,12 @@ const PRECEDENCE = {
 
 export const parse = (input: Token[]) => {
   let index = 0;
+
   const done = () => index >= input.length;
+
   const accepts = (type: Token["type"], value: string) =>
     input[index].type === type && input[index].value === value;
+
   const expects = (type: Token["type"], value: string) => {
     if (!accepts(type, value)) {
       throw new Error(
@@ -69,29 +72,23 @@ export const parse = (input: Token[]) => {
       );
     }
   };
+
   const next = () => {
     index++;
   };
+
   const skip = (type: Token["type"], value: string) => {
     expects(type, value);
     next();
   };
-  const parseTopLevel = () => {
-    const program: AST[] = [];
-    while (!done()) {
-      program.push(parseExpression());
-      if (!done()) {
-        skip("punctuation", ";");
-      }
-    }
-    return program;
-  };
+
   const maybeCall = (expr: () => AST): AST => {
     const evaluated = expr();
     return !done() && accepts("punctuation", "(")
       ? parseCall(evaluated)
       : evaluated;
   };
+
   const parseCall = (func: AST): AST => {
     return {
       type: "call",
@@ -99,6 +96,7 @@ export const parse = (input: Token[]) => {
       parameters: delimited("(", ")", ",", parseExpression),
     };
   };
+
   const maybeBinary = (left: AST, precedence: number): AST => {
     if (!done() && input[index].type === "operator") {
       const token = input[index];
@@ -129,12 +127,13 @@ export const parse = (input: Token[]) => {
     }
     return left;
   };
+
   const delimited = (
     start: string,
     stop: string,
     seperator: string,
     parser: () => AST
-  ) => {
+  ): AST[] => {
     const asts: AST[] = [];
     let first = true;
     skip("punctuation", start);
@@ -151,7 +150,8 @@ export const parse = (input: Token[]) => {
     skip("punctuation", stop);
     return asts;
   };
-  const parseProgram = (): AST & { type: "program" } => ({
+
+  const parseProgram = (): AST => ({
     type: "program",
     prog: delimited("{", "}", ";", parseExpression),
   });
@@ -200,6 +200,7 @@ export const parse = (input: Token[]) => {
       if (accepts("punctuation", "{")) return parseProgram();
       if (accepts("operator", "\\")) return parseLambda();
       if (accepts("keyword", "if")) return parseIf();
+
       const token = input[index];
       if (
         token.type === "id" ||
@@ -212,11 +213,24 @@ export const parse = (input: Token[]) => {
           value: token.value,
         };
       }
-      throw new Error(`token unrecognized: ${token.type} "${token.value}"`);
+
+      throw new Error(`syntax error: ${token.type} "${token.value}"`);
     });
   };
+
   const parseExpression = (): AST =>
     maybeCall(() => maybeBinary(parseAtom(), 0));
+
+  const parseTopLevel = () => {
+    const program: AST[] = [];
+    while (!done()) {
+      program.push(parseExpression());
+      if (!done()) {
+        skip("punctuation", ";");
+      }
+    }
+    return program;
+  };
 
   return parseTopLevel();
 };
