@@ -15,13 +15,19 @@ const js = (tree: AST): string => {
           tree.parameters[1]
         )})`;
       } else {
-        return `${js(tree.func)}(${tree.parameters.map(js).join(",")})`;
+        return `${js(tree.func)}(${tree.parameters.map(js).join(")(")})`;
       }
     case "function":
-      return `(((${tree.params.map(js).join(",")})=>{${tree.body
-        .map(js)
-        .map((x, i) => (i === tree.body.length - 1 ? `return ${x}` : x))
-        .join(";")}})${tree.autoRun ? `()` : ``})`;
+      const body = tree.body.map(js).join(",");
+      if (tree.params.length > 0) {
+        const prefix = tree.params
+          .map((param) => `(${(param as { value: string }).value})=>(`)
+          .join("");
+        const suffix = tree.params.map(() => `)`).join("");
+        return `${prefix}${body}${suffix}`;
+      } else {
+        return `()=>(${body})`;
+      }
     case "id":
       return tree.value;
     case "number":

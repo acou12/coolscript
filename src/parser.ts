@@ -82,21 +82,6 @@ export const parse = (input: Token[]) => {
     next();
   };
 
-  const maybeCall = (expr: () => AST): AST => {
-    const evaluated = expr();
-    return !done() && accepts("punctuation", "(")
-      ? parseCall(evaluated)
-      : evaluated;
-  };
-
-  const parseCall = (func: AST): AST => {
-    return {
-      type: "call",
-      func,
-      parameters: delimited("(", ")", ",", parseExpression),
-    };
-  };
-
   const maybeBinary = (left: AST, precedence: number): AST => {
     if (!done() && input[index].type === "operator") {
       const token = input[index];
@@ -239,44 +224,64 @@ export const parse = (input: Token[]) => {
   };
 
   const parseAtom = (): AST => {
-    return maybeCall(() => {
-      if (accepts("punctuation", "(")) {
-        next();
-        const expression = parseExpression();
-        skip("punctuation", ")");
-        return expression;
-      }
+    if (accepts("punctuation", "(")) {
+      next();
+      const expression = parseExpression();
+      skip("punctuation", ")");
+      return expression;
+    }
 
-      if (accepts("keyword", "val") || accepts("keyword", "var"))
-        return parseAssignment();
+    if (accepts("keyword", "val") || accepts("keyword", "var"))
+      return parseAssignment();
 
-      if (accepts("punctuation", "!") && input[index + 1].value === "{")
-        return parseLambda();
+    if (accepts("punctuation", "!") && input[index + 1].value === "{")
+      return parseLambda();
 
-      if (accepts("punctuation", "{")) return parseLambda();
-      if (accepts("keyword", "if")) return parseIf();
+    if (accepts("punctuation", "{")) return parseLambda();
+    if (accepts("keyword", "if")) return parseIf();
 
-      const token = input[index];
-      if (
-        token.type === "id" ||
-        token.type === "number" ||
-        token.type === "string"
-      ) {
-        next();
-        return {
-          type: token.type,
-          value: token.value,
-        };
-      }
+    const token = input[index];
+    if (
+      token.type === "id" ||
+      token.type === "number" ||
+      token.type === "string"
+    ) {
+      next();
+      return {
+        type: token.type,
+        value: token.value,
+      };
+    }
 
-      throw new Error(
-        `syntax error: ${token.type} "${token.value}" at ${index}`
-      );
-    });
+    throw new Error(`syntax error: ${token.type} "${token.value}" at ${index}`);
   };
 
-  const parseExpression = (): AST =>
-    maybeCall(() => maybeBinary(parseAtom(), 0));
+  const parseCallableAtom = () => {
+    let currentTree = parseAtom();
+    while (currentToken().value === "." || currentToken().value === "(") {
+      if (currentToken().value === ".") {
+        next();
+        const func = parseAtom();
+        const parameters = delimited("(", ")", ",", parseExpression);
+        currentTree = {
+          type: "call",
+          func,
+          parameters: [...parameters, currentTree],
+        };
+      } else {
+        // (
+        const parameters = delimited("(", ")", ",", parseExpression);
+        currentTree = {
+          type: "call",
+          func: currentTree,
+          parameters,
+        };
+      }
+    }
+    return currentTree;
+  };
+
+  const parseExpression = (): AST => maybeBinary(parseCallableAtom(), 0);
 
   const parseTopLevel = () => {
     const program: AST[] = [];

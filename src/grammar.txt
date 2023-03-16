@@ -1,0 +1,56 @@
+// primatives
+<id> = @id 
+<string> = @string
+<number> = @number
+
+<atom> =
+    | (<expression>)
+    | <anon-function> 
+    | <id>
+    | <string>
+    | <number>
+    | <block>
+
+<block> = { [<line>]* }
+
+<csids> = <id>[, <csids>]?
+
+<anon-function> = \<csids> -> <anon-function-body>
+
+<anon-function-body> =
+    | <block>
+    | <expression>
+
+// "a"()().5()().(2 + 3)(100(100), 100).a() -- valid!
+
+<function-call> = 
+    | <tuple>
+    | .<atom><tuple>
+
+<maybe-multiple-function-calls> = <function-call><maybe-multiple-function-calls> | e
+
+<callable-atom> =
+    | <atom><maybe-multiple-function-calls>
+
+<expression> =
+    | <callable-atom>
+    | <callable-atom> <op> <expression> // precedence?
+
+<tuple> = ([<expression>[, <expression>]*]?)
+<id-tuple> = (<csids>)
+
+<line> =
+    | val <id> = <expression>;
+    | val <id><id-tuple> = <expression>; // sugar for `val <id> = <id-tuple> -> <expression>`
+    | val <id> <op> <id> = <expression>; // special syntax for operator definitions
+    | var <id> = <expression>;
+    | <expression>;
+
+<program> = [<line>]*
+
+/* 
+the list:
+- kotlin wasm
+- haskell type system
+- def <x>! = factorial(<x>);
+*/

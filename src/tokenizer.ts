@@ -29,7 +29,7 @@ const tokenizeCharacter =
       ? { consumed: 1, token: { type, value } }
       : undefined;
 
-const tokenizePunctuation = ";,(){}[]|:!"
+const tokenizePunctuation = ";,(){}[]|:!."
   .split("")
   .map((c) => tokenizeCharacter("punctuation", c));
 

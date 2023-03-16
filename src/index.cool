@@ -1,48 +1,5 @@
-val factorial = { n -> if (n <= 1) 1 else n * factorial(n - 1) };
+val square = { x -> x * x };
+val n = 17;
 
-val factTen = factorial(10);
-
-say(factTen);
-
-if (factTen > 1000000) {
-    say("dang, that's big!");
-
-    val equalityIsSymmetric = 1 == 1;
-    val equalityProperty = if equalityIsSymmetric "symmetric" else "asymmetric";
-    say("equality is " + equalityProperty);
-
-    if (equalityIsSymmetric) {
-        say("that's what i thought...");
-    };
-} else {
-    say("not that big -- unimpressed.");
-};
-
-// first class coming soon... for now,
-val forLoop = { left, right, f -> 
-    if left <= right {
-        f(left);
-        forLoop(left + 1, right, f);
-    };
-};
-
-say();
-say("Here are some factorials: ");
-forLoop(1, 10, { x -> say(x + "! = " + factorial(x)) });
-
-val power = native("Math.pow");
-
-val twoToTheTen = power(2, 10);
-
-say();
-say("Now for fizzes and buzzes: ");
-
-forLoop(1, twoToTheTen, { n ->
-    say(
-        // autorun blocks, prepended with `!`
-       !{
-            val combined = ((if (n % 3 == 0) "Fizz" else "") + (if (n % 5 == 0) "Buzz" else ""));
-            if (combined == "") n else combined // this value is returned (it's a ternary)
-       }
-    )
-});
+say(square(17));
+say(17.square());

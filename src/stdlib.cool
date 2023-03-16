@@ -1,2 +1,2 @@
 val say = native("console.log");
-val quine = say("quine();");
+val quine = { -> say("quine();") };
