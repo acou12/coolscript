@@ -51,27 +51,27 @@ export const operators = [
   ">",
 ];
 
-const tokenizeOperator =
-  (operator: string): Tokenizer =>
-  (index: number, string: string) => {
-    if (operator.length + index > string.length) {
-      return undefined;
-    } else {
-      return string.slice(index, index + operator.length) === operator
-        ? ({
-            consumed: operator.length,
-            token: {
-              type: "operator",
-              value: operator,
-            },
-          } as TokenizeResult)
-        : undefined;
-    }
-  };
+// const tokenizeOperator =
+//   (operator: string): Tokenizer =>
+//   (index: number, string: string) => {
+//     if (operator.length + index > string.length) {
+//       return undefined;
+//     } else {
+//       return string.slice(index, index + operator.length) === operator
+//         ? ({
+//             consumed: operator.length,
+//             token: {
+//               type: "operator",
+//               value: operator,
+//             },
+//           } as TokenizeResult)
+//         : undefined;
+//     }
+//   };
 
-const tokenizeOperators = operators.map((operator) =>
-  tokenizeOperator(operator)
-);
+// const tokenizeOperators = operators.map((operator) =>
+//   tokenizeOperator(operator)
+// );
 
 const tokenizePattern =
   (type: Token["type"], pattern: RegExp): Tokenizer =>
@@ -91,6 +91,11 @@ const tokenizePattern =
           },
         };
   };
+
+const tokenizeMiscOperator = tokenizePattern(
+  "operator",
+  /[\\\!\@\#\$\%\^\&\*\+\-\?\<\>\|\=\/]/
+);
 
 const tokenizeNumber = tokenizePattern("number", /[0-9]/);
 const tokenizeName = tokenizePattern("id", /[a-zA-Z]/);
@@ -174,10 +179,10 @@ const keywords = "if else val var".split(" ");
 const tokenizers: Tokenizer[] = [
   tokenizeComment,
   tokenizeString,
-  ...tokenizeOperators,
-  tokenizeEquals,
-  tokenizeSpace,
+  tokenizeMiscOperator,
   ...tokenizePunctuation,
+  // ...tokenizeOperators,
+  tokenizeSpace,
   ...keywords.map(tokenizeKeyword),
   tokenizeName,
   tokenizeNumber,

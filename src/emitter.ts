@@ -1,7 +1,13 @@
 import { AST } from "./parser";
-import { operators } from "./tokenizer";
 
 export const prefix = `const native = eval;`;
+
+const nativeJsOperators = "+ - / * % == != > < >= <=".split(" ");
+
+const asciifyOperator = (operator: string) =>
+  [...operator]
+    .map((c) => ("A" <= c && c <= "z" ? c : "_" + c.charCodeAt(0) + "_"))
+    .join("");
 
 const js = (tree: AST): string => {
   switch (tree.type) {
@@ -12,7 +18,7 @@ const js = (tree: AST): string => {
     case "call":
       if (
         tree.func.type === "id" &&
-        (operators.includes(tree.func.value) || tree.func.value === "=")
+        nativeJsOperators.includes(tree.func.value)
       ) {
         return `(${js(tree.parameters[0])} ${tree.func.value} ${js(
           tree.parameters[1]
@@ -32,7 +38,7 @@ const js = (tree: AST): string => {
         return `(()=>(${body}))${tree.autoRun ? "()" : ""}`;
       }
     case "id":
-      return tree.value;
+      return asciifyOperator(tree.value);
     case "number":
       return tree.value;
     case "string":

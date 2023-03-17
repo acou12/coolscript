@@ -75,6 +75,11 @@ export const parse = (input: Token[]) => {
 
   const expects = (type: Token["type"], value: string) => {
     if (!accepts(type, value)) {
+      console.log(
+        input
+          .slice(Math.max(0, index - 5), Math.min(index + 5, input.length))
+          .map((token) => token.value)
+      );
       throw new Error(
         `expected ${type} "${value}", found ${input[index].type} "${input[index].value}" at ${index}`
       );
@@ -94,7 +99,7 @@ export const parse = (input: Token[]) => {
     if (!done() && input[index].type === "operator") {
       const token = input[index];
       const otherPrecedence =
-        PRECEDENCE[token.value as keyof typeof PRECEDENCE];
+        PRECEDENCE[token.value as keyof typeof PRECEDENCE] ?? 1;
       if (otherPrecedence > precedence) {
         next();
         const right = maybeBinary(parseCallableAtom(), otherPrecedence);
@@ -156,8 +161,8 @@ export const parse = (input: Token[]) => {
 
     const id = parseId();
 
-    if (accepts("assign", "=")) {
-      skip("assign", "=");
+    if (accepts("operator", "=")) {
+      skip("operator", "=");
       const expression = parseExpression();
       return {
         type: "assign",
@@ -168,7 +173,7 @@ export const parse = (input: Token[]) => {
       };
     } else if (accepts("punctuation", "(")) {
       const params = delimited("(", ")", ",", parseId);
-      skip("assign", "=");
+      skip("operator", "=");
       return {
         type: "assign",
         operator: "=",
@@ -180,6 +185,26 @@ export const parse = (input: Token[]) => {
             ? delimited("{", "}", ";", parseExpression)
             : [parseExpression()],
           params,
+        },
+        mutable,
+      };
+    } else if (currentToken().type === "operator") {
+      const operator = currentToken();
+      next();
+      const secondId = parseId();
+      skip("operator", "=");
+      const expressions = accepts("punctuation", "{")
+        ? delimited("{", "}", ";", parseExpression)
+        : [parseExpression()];
+      return {
+        type: "assign",
+        operator: "=",
+        left: { type: "id", value: operator.value },
+        right: {
+          type: "function",
+          autoRun: false,
+          body: expressions,
+          params: [id, secondId],
         },
         mutable,
       };
@@ -259,14 +284,14 @@ export const parse = (input: Token[]) => {
     }
   };
 
-  const intercept = <T>(x: T) => {
-    console.log(x);
-    return x;
-  };
+  // const intercept = <T>(x: T) => {
+  //   console.log(x);
+  //   return x;
+  // };
 
   const parsePossibleAssignmentOrMaybeJustId = (): AST => {
     const id = parseId();
-    if (accepts("assign", "=")) {
+    if (accepts("operator", "=")) {
       const equals = {
         type: "id",
         value: "=",
