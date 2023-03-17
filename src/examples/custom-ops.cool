@@ -5,17 +5,15 @@ say([1, 2] ++ [3, 4]);
 say([1, 2] ++ [3, 4] ++ [5, 6]);
 say([1, 2, 3] +* 6);
 
-// precedence for custom ops are all the same
 say([1, 2] ++ [3, 4] +* 3);
 
-// (contains)
-val arr |< x = 
+val arr ∈ x = 
     if (arr.length() == 0) false 
     else 
         if arr.at(0) == x true 
-        else arr.slice(1, arr.length()) |< x;
+        else arr.slice(1, arr.length()) ∈ x;
 
 say();
-say([1, 2, 3] |< 3);
-say([1, 2, 3] |< 4);
+say([1, 2, 3] ∈ 3);
+say([1, 2, 3] ∈ 4);
 

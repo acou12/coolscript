@@ -94,7 +94,7 @@ const tokenizePattern =
 
 const tokenizeMiscOperator = tokenizePattern(
   "operator",
-  /[\\\!\@\#\$\%\^\&\*\+\-\?\<\>\|\=\/]/
+  /([\\\!\@\#\$\%\^\&\*\+\-\?\<\>\|\=\/\~]|[^\x00-\x7F])/
 );
 
 const tokenizeNumber = tokenizePattern("number", /[0-9]/);
@@ -163,18 +163,20 @@ const tokenizeKeyword =
       return undefined;
     } else {
       return string.slice(index, index + keyword.length) === keyword
-        ? ({
-            consumed: keyword.length,
-            token: {
-              type: "keyword",
-              value: keyword,
-            },
-          } as TokenizeResult)
+        ? /[^a-zA-Z]/.test(string[index + keyword.length])
+          ? ({
+              consumed: keyword.length,
+              token: {
+                type: "keyword",
+                value: keyword,
+              },
+            } as TokenizeResult)
+          : undefined
         : undefined;
     }
   };
 
-const keywords = "if else val var".split(" ");
+const keywords = "if else val var for die in while".split(" ");
 
 const tokenizers: Tokenizer[] = [
   tokenizeComment,

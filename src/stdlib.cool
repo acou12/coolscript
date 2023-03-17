@@ -27,3 +27,12 @@ val random = native("Math.random");
 val floor = native("Math.floor");
 
 val randomInt(low, high) = floor(random() * (high - low)) + low;
+
+var result = 1;
+
+val x ** y = {
+    result = 1;
+    for i in range(1, y) result *= x;
+    result;
+};
+

@@ -1,3 +1,4 @@
+import { AssertionError } from "assert";
 import { Token } from "./tokenizer";
 
 export type AST =
@@ -44,7 +45,10 @@ export type AST =
   | {
       type: "array";
       elements: AST[];
-    };
+    }
+  | { type: "die" }
+  | { type: "for"; range: AST; id: AST; body: AST[] }
+  | { type: "while"; condition: AST; body: AST[] };
 
 const PRECEDENCE = {
   "=": 1,
@@ -265,6 +269,35 @@ export const parse = (input: Token[]) => {
     };
   };
 
+  const parseWhile = (): AST => {
+    skip("keyword", "while");
+    const condition = parseExpression();
+    const body = delimited("{", "}", ";", parseExpression);
+    return {
+      type: "while",
+      condition,
+      body,
+    };
+  };
+
+  const parseFor = (): AST => {
+    skip("keyword", "for");
+    let hasParens = accepts("punctuation", "(");
+    if (hasParens) next();
+    const id = parseId();
+    skip("keyword", "in");
+    const range = parseExpression();
+    const body = accepts("punctuation", "{")
+      ? delimited("{", "}", ";", parseExpression)
+      : [parseExpression()];
+    return {
+      type: "for",
+      id,
+      range,
+      body,
+    };
+  };
+
   const parseArray = (): AST => {
     return {
       type: "array",
@@ -283,11 +316,6 @@ export const parse = (input: Token[]) => {
       };
     }
   };
-
-  // const intercept = <T>(x: T) => {
-  //   console.log(x);
-  //   return x;
-  // };
 
   const parsePossibleAssignmentOrMaybeJustId = (): AST => {
     const id = parseId();
@@ -321,6 +349,12 @@ export const parse = (input: Token[]) => {
 
     if (accepts("operator", "\\")) return parseLambda();
     if (accepts("keyword", "if")) return parseIf();
+    if (accepts("keyword", "while")) return parseWhile();
+    if (accepts("keyword", "for")) return parseFor();
+    if (accepts("keyword", "die"))
+      return {
+        type: "die",
+      };
 
     const token = input[index];
     if (token.type === "number" || token.type === "string") {
