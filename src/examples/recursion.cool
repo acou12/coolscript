@@ -1,0 +1,23 @@
+val slice(from, to, array) = 
+    if (from < to)
+        [array.at(from)].concat(array.slice(from + 1, to))
+    else
+        [];
+
+val length = native("a => a.length");
+
+val forEach(f, array) = if array.length() != 0 {
+    f(array.at(0));
+    forEach(f, array.slice(1, array.length()))
+};
+
+val range(from, to) = if (from <= to) [from].concat(range(from + 1, to)) else [];
+
+val sum(arr) =
+    if (arr.length() == 0) 0
+    else arr.at(0) + (sum(arr.slice(1, arr.length())));
+
+val oneThousandSum = range(1, 1000).sum();
+
+say(oneThousandSum);
+

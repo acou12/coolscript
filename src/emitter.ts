@@ -10,7 +10,10 @@ const js = (tree: AST): string => {
         tree.right
       )}`;
     case "call":
-      if (tree.func.type === "id" && operators.includes(tree.func.value)) {
+      if (
+        tree.func.type === "id" &&
+        (operators.includes(tree.func.value) || tree.func.value === "=")
+      ) {
         return `(${js(tree.parameters[0])} ${tree.func.value} ${js(
           tree.parameters[1]
         )})`;
@@ -24,9 +27,9 @@ const js = (tree: AST): string => {
           .map((param) => `(${(param as { value: string }).value})=>(`)
           .join("");
         const suffix = tree.params.map(() => `)`).join("");
-        return `${prefix}${body}${suffix}`;
+        return `(${prefix}${body}${suffix})${tree.autoRun ? "()" : ""}`;
       } else {
-        return `()=>(${body})`;
+        return `(()=>(${body}))${tree.autoRun ? "()" : ""}`;
       }
     case "id":
       return tree.value;
@@ -38,6 +41,11 @@ const js = (tree: AST): string => {
       return `((${js(tree.condition)})?(${js(tree.ifBranch)}):${
         tree.elseBranch !== undefined ? `(${js(tree.elseBranch)})` : `(()=>{})`
       })`;
+    case "tuple":
+      // todo: fix lol
+      return `${tree.expressions.map(js).join(")(")}`;
+    case "array":
+      return `[${tree.elements.map(js).join(", ")}]`;
   }
 };
 

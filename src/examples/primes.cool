@@ -1,0 +1,37 @@
+var prime = true;
+
+val printPrimesTo(n) = {
+    // cringe O(n^2)
+    say(2);
+    range(3, n).forEach(\x -> {
+        prime = true;
+        range(2, x - 1).forEach(\d -> {
+            if (x % d == 0) prime = false;
+        });
+        if (prime) say(x);
+    });
+};
+
+printPrimesTo(300);
+
+// val arraySize(n) = if (n == 0) [] else [true].concat(arraySize(n - 1));
+
+// val sqrt = native("Math.sqrt");
+// val set = native("i => x => a => a[i] = x");
+// val nothing = \ -> 0;
+
+// var index = 0;
+// var current = 0;
+// var nums = [];
+
+// val seive(n) = {
+//     index = 2;
+//     current = 2;
+//     nums = arraySize(n);
+//     range(2, sqrt(n)).forEach(\i -> {
+//         nums.set(i, false);
+//     });
+//     range(1, nums.length()).forEach(\i -> if nums.at(i) say(i) else nothing());
+// };
+
+// seive(100);

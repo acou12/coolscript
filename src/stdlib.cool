@@ -1,2 +1,29 @@
 val say = native("console.log");
-val quine = { -> say("quine();") };
+val quine = \ -> "quine();".say();
+
+val at = native("(i) => (a) => a.at(i)");
+val concat = native("(b) => (a) => a.concat(b)");
+
+val slice(from, to, array) = 
+    if (from < to)
+        [array.at(from)].concat(array.slice(from + 1, to))
+    else
+        [];
+
+val length = native("a => a.length");
+
+val forEach(f, array) = if array.length() != 0 {
+    f(array.at(0));
+    forEach(f, array.slice(1, array.length()))
+};
+
+val range(from, to) = if (from <= to) [from].concat(range(from + 1, to)) else [];
+
+val map(f, arr) = 
+    if (arr.length() == 0) []
+    else [f(arr.at(0))].concat(map(f, arr.slice(1, arr.length())));
+
+val random = native("Math.random");
+val floor = native("Math.floor");
+
+val randomInt(low, high) = floor(random() * (high - low)) + low;

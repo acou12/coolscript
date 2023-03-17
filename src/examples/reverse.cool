@@ -1,0 +1,5 @@
+val reverse(arr) = if (arr.length() == 0) [] else reverse(arr.slice(1, arr.length())) .concat (arr.at(0));
+
+val arr = range(1, 10).map(\ -> randomInt(0, 100));
+arr.say();
+arr.reverse().say();

@@ -36,6 +36,14 @@ export type AST =
       condition: AST;
       ifBranch: AST;
       elseBranch?: AST;
+    }
+  | {
+      type: "tuple";
+      expressions: AST[];
+    }
+  | {
+      type: "array";
+      elements: AST[];
     };
 
 const PRECEDENCE = {
@@ -89,7 +97,7 @@ export const parse = (input: Token[]) => {
         PRECEDENCE[token.value as keyof typeof PRECEDENCE];
       if (otherPrecedence > precedence) {
         next();
-        const right = maybeBinary(parseAtom(), otherPrecedence);
+        const right = maybeBinary(parseCallableAtom(), otherPrecedence);
         return maybeBinary(
           {
             type: "call",
@@ -145,51 +153,60 @@ export const parse = (input: Token[]) => {
     const assignType = currentToken().value as "val" | "var";
     next();
     const mutable = assignType === "var";
-    return {
-      type: "assign",
-      operator: "=",
-      left: parseId(),
-      right: (skip("assign", "="), parseExpression()),
-      mutable,
-    };
+
+    const id = parseId();
+
+    if (accepts("assign", "=")) {
+      skip("assign", "=");
+      const expression = parseExpression();
+      return {
+        type: "assign",
+        operator: "=",
+        left: id,
+        right: expression,
+        mutable,
+      };
+    } else if (accepts("punctuation", "(")) {
+      const params = delimited("(", ")", ",", parseId);
+      skip("assign", "=");
+      return {
+        type: "assign",
+        operator: "=",
+        left: id,
+        right: {
+          type: "function",
+          autoRun: false,
+          body: accepts("punctuation", "{")
+            ? delimited("{", "}", ";", parseExpression)
+            : [parseExpression()],
+          params,
+        },
+        mutable,
+      };
+    } else {
+      throw new Error("syntax error in assignment");
+    }
   };
 
   const parseLambda = (): AST => {
-    if (accepts("punctuation", "!")) {
+    next();
+    let params: AST[] = [];
+    while (currentToken().type === "id") {
+      params.push(currentToken() as AST);
       next();
-      return {
-        type: "function",
-        params: [],
-        body: delimited("{", "}", ";", parseExpression),
-        autoRun: true,
-      };
-    }
-    skip("punctuation", "{");
-    const params: AST[] = [];
-    while (!done() && currentToken().type === "id") {
-      params.push(parseId());
-      if (accepts("punctuation", ",")) {
-        next();
-      } else {
+      if (currentToken().type === "operator" && currentToken().value === "->") {
         break;
       }
+      skip("punctuation", ",");
     }
     skip("operator", "->");
-    const body: AST[] = [];
-    while (!done() && !accepts("punctuation", "}")) {
-      body.push(parseExpression());
-      if (accepts("punctuation", ";")) {
-        next();
-      } else {
-        break;
-      }
-    }
-    skip("punctuation", "}");
     return {
       type: "function",
-      params,
-      body,
       autoRun: false,
+      body: accepts("punctuation", "{")
+        ? delimited("{", "}", ";", parseExpression)
+        : [parseExpression()],
+      params,
     };
   };
 
@@ -223,34 +240,72 @@ export const parse = (input: Token[]) => {
     };
   };
 
-  const parseAtom = (): AST => {
-    if (accepts("punctuation", "(")) {
+  const parseArray = (): AST => {
+    return {
+      type: "array",
+      elements: delimited("[", "]", ",", parseExpression),
+    };
+  };
+
+  const parseTuple = (): AST => {
+    const expressions = delimited("(", ")", ",", parseExpression);
+    if (expressions.length === 1) {
+      return expressions[0];
+    } else {
+      return {
+        type: "tuple",
+        expressions,
+      };
+    }
+  };
+
+  const intercept = <T>(x: T) => {
+    console.log(x);
+    return x;
+  };
+
+  const parsePossibleAssignmentOrMaybeJustId = (): AST => {
+    const id = parseId();
+    if (accepts("assign", "=")) {
+      const equals = {
+        type: "id",
+        value: "=",
+      } as AST;
       next();
-      const expression = parseExpression();
-      skip("punctuation", ")");
-      return expression;
+      return {
+        type: "call",
+        func: equals,
+        parameters: [id, parseExpression()],
+      };
+    } else {
+      return id;
+    }
+  };
+
+  const parseAtom = (): AST => {
+    if (accepts("punctuation", "[")) {
+      return parseArray();
+    }
+
+    if (accepts("punctuation", "(")) {
+      return parseTuple();
     }
 
     if (accepts("keyword", "val") || accepts("keyword", "var"))
       return parseAssignment();
 
-    if (accepts("punctuation", "!") && input[index + 1].value === "{")
-      return parseLambda();
-
-    if (accepts("punctuation", "{")) return parseLambda();
+    if (accepts("operator", "\\")) return parseLambda();
     if (accepts("keyword", "if")) return parseIf();
 
     const token = input[index];
-    if (
-      token.type === "id" ||
-      token.type === "number" ||
-      token.type === "string"
-    ) {
+    if (token.type === "number" || token.type === "string") {
       next();
       return {
         type: token.type,
         value: token.value,
       };
+    } else if (token.type === "id") {
+      return parsePossibleAssignmentOrMaybeJustId();
     }
 
     throw new Error(`syntax error: ${token.type} "${token.value}" at ${index}`);
@@ -262,12 +317,30 @@ export const parse = (input: Token[]) => {
       if (currentToken().value === ".") {
         next();
         const func = parseAtom();
-        const parameters = delimited("(", ")", ",", parseExpression);
-        currentTree = {
-          type: "call",
-          func,
-          parameters: [...parameters, currentTree],
-        };
+        if (accepts("punctuation", "(")) {
+          const parameters = delimited("(", ")", ",", parseExpression);
+          currentTree = {
+            type: "call",
+            func,
+            parameters: [...parameters, currentTree],
+          };
+        } else {
+          throw new Error("");
+          // TODO: should be valid, but the following does not work. (currying is messed up)
+          // uh oh.. all functions are messed up?
+          // currentTree = {
+          //   type: "function",
+          //   autoRun: false,
+          //   body: [
+          //     {
+          //       type: "call",
+          //       func,
+          //       parameters: [currentTree],
+          //     },
+          //   ],
+          //   params: [],
+          // };
+        }
       } else {
         // (
         const parameters = delimited("(", ")", ",", parseExpression);

@@ -54,3 +54,13 @@ the list:
 - haskell type system
 - def <x>! = factorial(<x>);
 */
+
+
+
+f()
+g(x)
+h(x, y)
+
+a.f == \ -> a.f()
+a.g == \x -> a.g(x)
+a.h == \x -> \y -> a.h(x, y)

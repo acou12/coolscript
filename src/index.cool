@@ -1,5 +1,0 @@
-val square = { x -> x * x };
-val n = 17;
-
-say(square(17));
-say(17.square());
