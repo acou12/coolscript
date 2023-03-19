@@ -4,17 +4,60 @@ var arr = [2, 3, 4];
 
 // append
 arr ++= [5];
-
 say(arr);
 
-// prepend
+// or prepend
 arr ~++= [1];
-
 say(arr);
 
 var x = 10;
-
 // convenient multiplicative inverse
 // equivalent to x = 1 / x;
 x ~/= 1;
 say(x);
+
+// tetration!
+val x *** y = {
+    result = 1;
+    for i in range(1, y) result ~**= x;
+    result;
+};
+
+// supertetration!!!!
+val x **** y = {
+    result = 1;
+    for i in range(1, y) result ~***= x;
+    result;
+};
+
+val nAryExponetiation(n, y, x) = {
+    if (n == 2) x ** y else {
+        result = 1;
+        for i in range(1, y) result = nAryExponetiation(n - 1, result, x);
+        result;
+    }
+};
+
+say(2 ** 3);
+say(2 *** 3);
+say(2 **** 3);
+
+// TODO: special regex expressions to allow any number of stars
+val x ***** y = nAryExponetiation(5, x, y);
+val x ****** y = nAryExponetiation(6, x, y);
+val x ******* y = nAryExponetiation(7, x, y);
+
+/*
+
+say(2 ***** 3);
+== 2****2****2
+== 2****4
+== 2***2***2***2
+== 2***65536
+== 2**2** ... **2
+          ^^^
+         65533 twos
+
+needless to say, this crashes.
+
+*/

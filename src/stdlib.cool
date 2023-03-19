@@ -18,10 +18,16 @@ val forEach(f, array) = if array.length() != 0 {
 };
 
 val range(from, to) = if (from <= to) [from].concat(range(from + 1, to)) else [];
+val keywordRange(from, to, leftInclusive, rightInclusive) = range(from + (if leftInclusive 0 else 1), to - (if rightInclusive 0 else 1));
 
 val map(f, arr) = 
     if (arr.length() == 0) []
     else [f(arr.at(0))].concat(map(f, arr.slice(1, arr.length())));
+
+val filter(f, arr) =
+    if (arr.length() == 0) []
+    else if f(arr.at(0)) [arr.at(0)].concat(arr.slice(1, arr.length()).filter(f))
+    else arr.slice(1, arr.length()).filter(f);
 
 val random = native("Math.random");
 val floor = native("Math.floor");

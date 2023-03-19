@@ -298,6 +298,48 @@ export const parse = (input: Token[]) => {
     };
   };
 
+  const parseRange = (): AST => {
+    next();
+    const firstDelimiter = currentToken();
+    if (
+      !(
+        firstDelimiter.type === "punctuation" &&
+        (firstDelimiter.value === "(" || firstDelimiter.value === "[")
+      )
+    ) {
+      throw new Error("invalid range.");
+    }
+
+    let beginInclusive = firstDelimiter.value === "[";
+    next();
+    let left = parseExpression();
+    skip("punctuation", ",");
+    let right = parseExpression();
+
+    let secondDelimiter = currentToken();
+    if (
+      !(
+        secondDelimiter.type === "punctuation" &&
+        (secondDelimiter.value === "]" || secondDelimiter.value === ")")
+      )
+    ) {
+      throw new Error("invalid range.");
+    }
+    let endInclusive = secondDelimiter.value === "]";
+    next();
+
+    return {
+      type: "call",
+      func: { type: "id", value: "keywordRange" },
+      parameters: [
+        left,
+        right,
+        { type: "id", value: beginInclusive ? "true" : "false" },
+        { type: "id", value: endInclusive ? "true" : "false" },
+      ],
+    };
+  };
+
   const parseArray = (): AST => {
     return {
       type: "array",
@@ -355,6 +397,8 @@ export const parse = (input: Token[]) => {
       return {
         type: "die",
       };
+
+    if (accepts("id", "r")) return parseRange();
 
     const token = input[index];
     if (token.type === "number" || token.type === "string") {
