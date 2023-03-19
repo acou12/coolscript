@@ -3,34 +3,47 @@ val quine = \ -> "quine();".say();
 
 val at = native("(i) => (a) => a.at(i)");
 val concat = native("(b) => (a) => a.concat(b)");
-
-val slice(from, to, array) = 
-    if (from < to)
-        [array.at(from)].concat(array.slice(from + 1, to))
-    else
-        [];
-
+val push = native("(x) => (arr) => arr.push(x)");
+val slice = native("(x) => (y) => (arr) => arr.slice(x, y)");
 val length = native("a => a.length");
-
-val forEach(f, array) = if array.length() != 0 {
-    f(array.at(0));
-    forEach(f, array.slice(1, array.length()))
-};
-
-val range(from, to) = if (from <= to) [from].concat(range(from + 1, to)) else [];
-val keywordRange(from, to, leftInclusive, rightInclusive) = range(from + (if leftInclusive 0 else 1), to - (if rightInclusive 0 else 1));
-
-val map(f, arr) = 
-    if (arr.length() == 0) []
-    else [f(arr.at(0))].concat(map(f, arr.slice(1, arr.length())));
-
-val filter(f, arr) =
-    if (arr.length() == 0) []
-    else if f(arr.at(0)) [arr.at(0)].concat(arr.slice(1, arr.length()).filter(f))
-    else arr.slice(1, arr.length()).filter(f);
-
 val random = native("Math.random");
 val floor = native("Math.floor");
+
+var i = 0;
+
+val range(from, to) = {
+    arrayResult = [];
+    i = from;    
+    while i <= to {
+        arrayResult.push(i);
+        i += 1;
+    };
+    arrayResult;
+};
+
+val keywordRange(from, to, leftInclusive, rightInclusive) = range(from + (if leftInclusive 0 else 1), to - (if rightInclusive 0 else 1));
+
+val map(f, arr) = {
+    arrayResult = [];
+    for x in arr {
+        arrayResult.push(f(x));
+    };
+    arrayResult;
+};
+
+val forEach = map;
+
+val filter(f, arr) = {
+    arrayResult = [];
+    for x in arr {
+        if f(x) {
+            arrayResult.push(x);
+        } else {
+            0;
+        };
+    };
+    arrayResult;
+};
 
 val randomInt(low, high) = floor(random() * (high - low)) + low;
 
@@ -41,4 +54,3 @@ val x ** y = {
     for i in range(1, y) result *= x;
     result;
 };
-

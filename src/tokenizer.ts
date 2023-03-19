@@ -176,7 +176,7 @@ const tokenizeKeyword =
     }
   };
 
-const keywords = "if else val var for die in while".split(" ");
+const keywords = "if else val var for in while".split(" ");
 
 const tokenizers: Tokenizer[] = [
   tokenizeComment,

@@ -66,9 +66,9 @@ const js = (tree: AST): string => {
       })`;
     case "while":
       const whileBody = tree.body.map(js).join(",");
-      return `while(${js(tree.condition)}){${
+      return `(()=>{while(${js(tree.condition)}){${
         whileBody === "" ? "" : `(${whileBody})`
-      }}`;
+      }}})()`;
     case "for":
       const forBody = tree.body.map(js).join(",");
       return `(()=>{for(${js(tree.id)} of ${js(tree.range)}){${

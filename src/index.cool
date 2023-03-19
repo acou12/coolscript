@@ -1,9 +1,13 @@
 val collatz(x) = if (x % 2 == 0) x / 2 else 3 * x + 1;
 
-var x = r[1, 1000];
-for i in r[1, 30] {
-    x = x.map(collatz);
-    say(x.at(10));
-};
+var arr = r[1, 100000];
 
-say(x.filter(\x -> x > 4));
+for i in r[1, 1000] {
+    // todo: arr.=map(collatz); (or similar)
+    f = map(collatz);
+    arr = f(arr);
+    if (i % 100 == 0) {
+        say(i + ": ");
+        arr.filter(\x -> x > 4).say();
+    };
+};

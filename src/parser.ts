@@ -46,7 +46,6 @@ export type AST =
       type: "array";
       elements: AST[];
     }
-  | { type: "die" }
   | { type: "for"; range: AST; id: AST; body: AST[] }
   | { type: "while"; condition: AST; body: AST[] };
 
@@ -149,14 +148,6 @@ export const parse = (input: Token[]) => {
   const parseId = () => {
     return input[index++] as AST;
   };
-
-  /*
-  valid: 
-    { a -> f() } 
-    { a, b -> f() }
-    { -> f() }
-    { a, b -> }
-  */
 
   const parseAssignment = (): AST => {
     const assignType = currentToken().value as "val" | "var";
@@ -393,10 +384,6 @@ export const parse = (input: Token[]) => {
     if (accepts("keyword", "if")) return parseIf();
     if (accepts("keyword", "while")) return parseWhile();
     if (accepts("keyword", "for")) return parseFor();
-    if (accepts("keyword", "die"))
-      return {
-        type: "die",
-      };
 
     if (accepts("id", "r")) return parseRange();
 
@@ -429,20 +416,6 @@ export const parse = (input: Token[]) => {
           };
         } else {
           throw new Error("");
-          // TODO: should be valid, but the following does not work. (currying is messed up)
-          // uh oh.. all functions are messed up?
-          // currentTree = {
-          //   type: "function",
-          //   autoRun: false,
-          //   body: [
-          //     {
-          //       type: "call",
-          //       func,
-          //       parameters: [currentTree],
-          //     },
-          //   ],
-          //   params: [],
-          // };
         }
       } else {
         // (

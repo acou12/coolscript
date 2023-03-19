@@ -7,13 +7,13 @@ say([1, 2, 3] +* 6);
 
 say([1, 2] ++ [3, 4] +* 3);
 
-val arr ∈ x = 
+val x ∈ arr = 
     if (arr.length() == 0) false 
     else 
         if arr.at(0) == x true 
-        else arr.slice(1, arr.length()) ∈ x;
+        else x ∈ arr.slice(1, arr.length());
 
 say();
-say([1, 2, 3] ∈ 3);
-say([1, 2, 3] ∈ 4);
+say(3 ∈ [1, 2, 3]);
+say(4 ∈ [1, 2, 3]);
 
